@@ -1,6 +1,8 @@
 from IPSA_Rover_Lib import IpsaRoverLib
 import time 
 from math import pi
+from math import pi, cos, sin
+import time
 d = IpsaRoverLib()
 
 def avancer(vitesse,temps):
@@ -54,9 +56,49 @@ def rotation_servo_moteur():
 
     for mes in range(10):
         echo_time_ms = d.read_sonar_echo_time_ms()
+        if echo_time_ms is None:
+            continue
         distance = 0.34*echo_time_ms
         print(f"Distance mesurée par le sonar : {distance/2} m donc {distance*100/2} cm")
         print(f"Temps de vol de l'onde : {echo_time_ms}")
         time.sleep(.5)
 
-rotation_servo_moteur()
+# rotation_servo_moteur()
+
+def scan_180():
+    points = []
+    pos_y_rover = 0.0  
+    for us in range(1000, 2000, 25):  
+        d.set_servo_pulse_us(us) 
+        time.sleep(0.05)
+
+        echo_time_ms = d.read_sonar_echo_time_ms()
+        if echo_time_ms is None:
+            avancer_de_xcm(150, 10)
+            pos_y_rover += 0.10
+            continue
+        distance = (0.34 * echo_time_ms) / 2
+        
+        angle_rad = ((us - 1500) * 90 / 500) * (pi / 180)
+
+
+        x_relatif = distance * cos(angle_rad)
+        y_relatif = distance * sin(angle_rad) 
+
+        x_global = x_relatif
+        y_global = y_relatif + pos_y_rover
+
+        points.append((x_global, y_global))
+
+        print(f"Rover à Y={pos_y_rover:.2f}m | Point: ({x_global:.2f}, {y_global:.2f})")
+        
+        avancer_de_xcm(150, 10) 
+        pos_y_rover += 0.10 
+
+    formatted_points = "[\n " + ",\n ".join(f"({x}, {y})" for x, y in points) + "\n]"
+    with open("points.txt", "w") as f:
+        f.write(formatted_points)
+
+
+
+scan_180()
