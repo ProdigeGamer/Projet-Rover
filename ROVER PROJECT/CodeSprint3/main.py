@@ -47,23 +47,23 @@ def avancer_de_xcm_strap(vitesse,distance):
 #avancer_de_xcm_strap(150,100)
 
 
-def rotation_servo_moteur():
-    for us in range(1000,2000,50):
-        d.set_servo_pulse_us(us)
-        time.sleep(.1)
+# def rotation_servo_moteur():
+#     for us in range(1000,2000,50):
+#         d.set_servo_pulse_us(us)
+#         time.sleep(.1)
 
-    #Sonar
+#     #Sonar
 
-    for mes in range(10):
-        echo_time_ms = d.read_sonar_echo_time_ms()
-        if echo_time_ms is None:
-            continue
-        distance = 0.34*echo_time_ms
-        print(f"Distance mesurée par le sonar : {distance/2} m donc {distance*100/2} cm")
-        print(f"Temps de vol de l'onde : {echo_time_ms}")
-        time.sleep(.5)
+#     for mes in range(10):
+#         echo_time_ms = d.read_sonar_echo_time_ms()
+#         if echo_time_ms is None:
+#             continue
+#         distance = 0.34*echo_time_ms
+#         print(f"Distance mesurée par le sonar : {distance/2} m donc {distance*100/2} cm")
+#         print(f"Temps de vol de l'onde : {echo_time_ms}")
+#         time.sleep(.5)
 
-# rotation_servo_moteur()
+# # rotation_servo_moteur()
 
 def scan_180():
     points = []
@@ -101,4 +101,37 @@ def scan_180():
 
 
 
-scan_180()
+
+def rotation_servo_moteur():
+    points = []
+    pos_y_rover = 0.0 
+
+    while pos_y_rover < 100:
+        # Scan à 180° à la position actuelle
+        for us in range(1000, 2001, 25):
+            d.set_servo_pulse_us(us)
+            time.sleep(0.05) 
+
+            echo_time_ms = d.read_sonar_echo_time_ms(pulses=1)
+        
+            if echo_time_ms is not None:
+                distance = (0.34 * echo_time_ms) / 2
+            
+                angle_rad = ((us - 1500) * 90 / 500) * (pi / 180)
+                x = distance * cos(angle_rad)
+                y = distance * sin(angle_rad) + pos_y_rover
+
+                points.append((x, y))
+                print(f"Pos Y={pos_y_rover:.1f}cm | Angle {us}us : Dist {distance:.2f}m -> ({x:.3f}, {y:.3f})")
+        
+        # Avancer de 10 cm après le scan
+        avancer_de_xcm(150, 25)
+        pos_y_rover += 25
+
+    # Sauvegarder les points
+    with open("points.txt", "w") as f:
+        f.write("[\n " + ",\n ".join(f"({x:.4f}, {y:.4f})" for x, y in points) + "\n]")
+    
+    return points
+
+rotation_servo_moteur()
