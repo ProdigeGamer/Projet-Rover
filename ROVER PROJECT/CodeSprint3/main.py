@@ -68,7 +68,7 @@ def rotation_servo_moteur():
 
 
 
-def rotation_servo_moteur2():
+def cartographie():
     points = []
     pos_y_rover = 0.0 
 
@@ -100,40 +100,82 @@ def rotation_servo_moteur2():
     
     return points
 
-# rotation_servo_moteur2()
+# cartographie()
 
+
+
+def mesurer_distance(nb_mesures=3):
+    mesures = []
+
+    for _ in range(nb_mesures):
+        echo = d.read_sonar_echo_time_ms(pulses=2)
+        if echo is not None:
+            distance = (0.34 * echo / 2) * 100
+            mesures.append(distance)
+        time.sleep(0.01)
+
+    if len(mesures) == 0:
+        return None
+
+    return sum(mesures) / len(mesures)
+
+def regarder_direction(pulse):
+    d.set_servo_pulse_us(pulse)
+    time.sleep(0.15)  
+    return mesurer_distance()
 
 def verif_obstacle_et_agir(vitesse=150):
-    d.set_servo_pulse_us(1500)
-    time.sleep(0.2)
-    
+
     while True:
-        echo_time_ms = d.read_sonar_echo_time_ms()
-        
-        if echo_time_ms is not None:
-            distance_cm = (0.34 * echo_time_ms / 2) * 100
-            print(f"Distance : {distance_cm:.1f} cm")
+        distance_cm = regarder_direction(1600)
+
+        if distance_cm is None:
+            print("Pas de mesure valide")
+            continue
+
+        print(f"Distance devant : {distance_cm:.1f} cm")
+
+        if distance_cm > 50:
+            print("Chemin libre → Avance")
+            avancer_de_xcm(vitesse, 15)
+
+        elif 25 < distance_cm <= 50:
+            print("Obstacle détecté → Ralentit")
+            avancer_de_xcm(vitesse // 2, 10)
             
-            if distance_cm >= 40:
-                print("Chemin libre : Avance...")
-                avancer_de_xcm(vitesse, 10) 
-            elif distance_cm <=20 :
-                print("! OBSTACLE détecté !")
-                d.control_motor_speed(0,0,0,0)
-                
-                print("Déviation par starps...")
-                avancer_de_xcm_strap(vitesse,20)
-            elif distance_cm>20 and distance_cm < 40:
-                print("on tourne")
+
+        else:
+            print("Obstacle proche → Analyse gauche/droite")
+
+            distance_gauche = regarder_direction(2000)
+            distance_droite = regarder_direction(1000)
+
+            print(f"Gauche : {distance_gauche}")
+            print(f"Droite : {distance_droite}")
+
+            d.set_servo_pulse_us(1600)
+            time.sleep(0.1)
+
+            if distance_gauche is None:
+                distance_gauche = 0
+            if distance_droite is None:
+                distance_droite = 0
+            
+            if distance_gauche < 25 and distance_droite < 25:
+                print("Bloqué des deux côtés → Recule + demi-tour")
+                avancer(-vitesse, 0.5)   
+                tourner(180, vitesse)
+
+            if distance_gauche > distance_droite:
+                print("Tourne à gauche")
+                tourner(-60, vitesse)
+
+            else:
+                print("Tourne à droite")
                 tourner(60, vitesse)
-        
-        time.sleep(0.1) 
 
-# verif_obstacle_et_agir(vitesse=150)
-while True:
-    d.set_servo_pulse_us(1500)
-    time.sleep(0.1)
-    echo = d.read_sonar_echo_time_ms(pulses=1)
 
-    if echo:
-        print((0.34 * echo / 2) * 100)
+        time.sleep(0.05)
+
+
+verif_obstacle_et_agir(vitesse=200)
