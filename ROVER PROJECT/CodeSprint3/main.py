@@ -136,16 +136,16 @@ def verif_obstacle_et_agir(vitesse=150):
         print(f"Distance devant : {distance_cm:.1f} cm")
 
         if distance_cm > 50:
-            print("Chemin libre → Avance")
+            print("Chemin libre on Avance")
             avancer_de_xcm(vitesse, 15)
 
         elif 25 < distance_cm <= 50:
-            print("Obstacle détecté → Ralentit")
+            print("Obstacle détecté on Ralentit")
             avancer_de_xcm(vitesse // 2, 10)
             
 
         else:
-            print("Obstacle proche → Analyse gauche/droite")
+            print("Obstacle proche on Analyse gauche/droite")
 
             distance_gauche = regarder_direction(2000)
             distance_droite = regarder_direction(1000)
@@ -162,7 +162,7 @@ def verif_obstacle_et_agir(vitesse=150):
                 distance_droite = 0
             
             if distance_gauche < 25 and distance_droite < 25:
-                print("Bloqué des deux côtés → Recule + demi-tour")
+                print("Bloqué des deux côté on Recule et demi-tour")
                 avancer(-vitesse, 0.5)   
                 tourner(180, vitesse)
 
